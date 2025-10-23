@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>BPMN – SP4 · Comunicación y Difusión (Layout ordenado)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.development.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background:#fafafa; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    .toolbar { display:flex; gap:8px; align-items:center; padding:10px; border-bottom:1px solid #e6e6e6; background:#fff; position:sticky; top:0; z-index:10; }
+    .toolbar a, .toolbar button { padding:8px 12px; border:1px solid #d8d8d8; background:#fff; border-radius:8px; cursor:pointer; text-decoration:none; color:#111; }
+    .toolbar a:hover, .toolbar button:hover { background:#f3f3f3; }
+    .hint { margin-left:auto; color:#666; font-size:12px; }
+    #canvas { height: calc(100vh - 56px); }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="./index_overview.html">← Vista General</a>
+    <strong>SP4 · Comunicación y difusión (ordenado)</strong>
+    <button id="btnFit">Ajustar</button>
+    <button id="btnDownloadBPMN">.bpmn</button>
+    <button id="btnDownloadSVG">.svg</button>
+    <span class="hint">Happy path horizontal; error/compensación abajo; líneas ortogonales</span>
+  </div>
+  <div id="canvas"></div>
+
+  <script type="text/plain" id="bpmn-xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_SP4_Orderly" targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="P_SP4" isExecutable="false" name="SP4 · Comunicación y difusión de resultados">
+    <bpmn:startEvent id="SP4_Start" name="Inicio SP4">
+      <bpmn:outgoing>F0</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="SP4_T_EnviarReportes" name="Enviar reportes ejecutivos a autoridades/comités">
+      <bpmn:incoming>F0</bpmn:incoming>
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP4_T_Publicar" name="Publicar panel (Power BI / Intranet / SharePoint)">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Boundary Error (caída de servicio) y Compensation (retirar publicación) -->
+    <bpmn:boundaryEvent id="SP4_BE_Error" name="Error de publicación" attachedToRef="SP4_T_Publicar" cancelActivity="false">
+      <bpmn:errorEventDefinition />
+      <bpmn:outgoing>F_Error_toReintento</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:task id="SP4_T_Reintentar" name="Reintentar / Escalar publicación">
+      <bpmn:incoming>F_Error_toReintento</bpmn:incoming>
+      <bpmn:outgoing>F_Reintento_toDifundir</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:boundaryEvent id="SP4_BE_Comp" name="Retirar publicación (Compensación)" attachedToRef="SP4_T_Publicar" cancelActivity="false">
+      <bpmn:compensateEventDefinition />
+      <bpmn:outgoing>F_Comp_toRetirar</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:task id="SP4_T_Retirar" name="Retirar publicación" isForCompensation="true"/>
+    <bpmn:association id="SP4_Assoc_Comp" sourceRef="SP4_BE_Comp" targetRef="SP4_T_Retirar" associationDirection="One"/>
+
+    <bpmn:task id="SP4_T_Difundir" name="Difundir alertas / resultados críticos">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:incoming>F_Reintento_toDifundir</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP4_T_Registrar" name="Registrar recepción y aprobación">
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="SP4_End" name="Fin SP4">
+      <bpmn:incoming>F4</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Data store de publicación -->
+    <bpmn:dataStoreReference id="SP4_DS_Portal" name="Portal de indicadores (publicado)"/>
+
+    <!-- Asociaciones a Data Store (opcional, representativo) -->
+    <bpmn:dataOutputAssociation id="SP4_DA_Publicar_a_Portal">
+      <bpmn:sourceRef>SP4_T_Publicar</bpmn:sourceRef>
+      <bpmn:targetRef>SP4_DS_Portal</bpmn:targetRef>
+    </bpmn:dataOutputAssociation>
+
+    <!-- Nota -->
+    <bpmn:textAnnotation id="SP4_Nota">
+      <bpmn:text>Puntos críticos: automatizar publicación y rollback, monitorear disponibilidad, trazabilidad de envíos.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="SP4_Assoc_Nota" sourceRef="SP4_T_Publicar" targetRef="SP4_Nota"/>
+
+    <!-- Flujos -->
+    <bpmn:sequenceFlow id="F0" sourceRef="SP4_Start" targetRef="SP4_T_EnviarReportes"/>
+    <bpmn:sequenceFlow id="F1" sourceRef="SP4_T_EnviarReportes" targetRef="SP4_T_Publicar"/>
+    <bpmn:sequenceFlow id="F_Error_toReintento" sourceRef="SP4_BE_Error" targetRef="SP4_T_Reintentar"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="SP4_T_Publicar" targetRef="SP4_T_Difundir"/>
+    <bpmn:sequenceFlow id="F_Reintento_toDifundir" sourceRef="SP4_T_Reintentar" targetRef="SP4_T_Difundir"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="SP4_T_Difundir" targetRef="SP4_T_Registrar"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="SP4_T_Registrar" targetRef="SP4_End"/>
+    <bpmn:sequenceFlow id="F_Comp_toRetirar" sourceRef="SP4_BE_Comp" targetRef="SP4_T_Retirar"/>
+
+  </bpmn:process>
+
+  <!-- DIAGRAM INTERCHANGE – Layout ordenado y líneas ortogonales -->
+  <bpmndi:BPMNDiagram id="DI_SP4">
+    <bpmndi:BPMNPlane id="PL_SP4" bpmnElement="P_SP4">
+      <!-- Fila principal (y ~ 180) -->
+      <bpmndi:BPMNShape id="SP4_Start_di" bpmnElement="SP4_Start"><dc:Bounds x="120" y="190" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_T_EnviarReportes_di" bpmnElement="SP4_T_EnviarReportes"><dc:Bounds x="180" y="180" width="300" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_T_Publicar_di" bpmnElement="SP4_T_Publicar"><dc:Bounds x="510" y="180" width="300" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_T_Difundir_di" bpmnElement="SP4_T_Difundir"><dc:Bounds x="840" y="180" width="300" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_T_Registrar_di" bpmnElement="SP4_T_Registrar"><dc:Bounds x="1170" y="180" width="300" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_End_di" bpmnElement="SP4_End"><dc:Bounds x="1490" y="190" width="36" height="36"/></bpmndi:BPMNShape>
+
+      <!-- Excepciones debajo de Publicar -->
+      <bpmndi:BPMNShape id="SP4_BE_Error_di" bpmnElement="SP4_BE_Error"><dc:Bounds x="780" y="226" width="18" height="18"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_T_Reintentar_di" bpmnElement="SP4_T_Reintentar"><dc:Bounds x="760" y="300" width="260" height="56"/></bpmndi:BPMNShape>
+
+      <!-- Compensación para retirar -->
+      <bpmndi:BPMNShape id="SP4_BE_Comp_di" bpmnElement="SP4_BE_Comp"><dc:Bounds x="780" y="250" width="18" height="18"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_T_Retirar_di" bpmnElement="SP4_T_Retirar"><dc:Bounds x="1040" y="300" width="240" height="56"/></bpmndi:BPMNShape>
+
+      <!-- Data store a la derecha -->
+      <bpmndi:BPMNShape id="SP4_DS_Portal_di" bpmnElement="SP4_DS_Portal"><dc:Bounds x="1490" y="260" width="70" height="52"/></bpmndi:BPMNShape>
+
+      <!-- Nota -->
+      <bpmndi:BPMNShape id="SP4_Nota_di" bpmnElement="SP4_Nota"><dc:Bounds x="520" y="250" width="240" height="50"/></bpmndi:BPMNShape>
+
+      <!-- Secuencias (ortogonales) -->
+      <bpmndi:BPMNEdge id="F0_di" bpmnElement="F0"><di:waypoint x="156" y="208"/><di:waypoint x="180" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1"><di:waypoint x="480" y="208"/><di:waypoint x="510" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2"><di:waypoint x="810" y="208"/><di:waypoint x="840" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3"><di:waypoint x="1140" y="208"/><di:waypoint x="1170" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4"><di:waypoint x="1470" y="208"/><di:waypoint x="1490" y="208"/></bpmndi:BPMNEdge>
+
+      <!-- Error -> Reintento -->
+      <bpmndi:BPMNEdge id="F_Error_toReintento_di" bpmnElement="F_Error_toReintento">
+        <di:waypoint x="789" y="235"/><di:waypoint x="790" y="328"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Reintento -> Difundir (sube en L) -->
+      <bpmndi:BPMNEdge id="F_Reintento_toDifundir_di" bpmnElement="F_Reintento_toDifundir">
+        <di:waypoint x="1020" y="328"/><di:waypoint x="1020" y="208"/><di:waypoint x="840" y="208"/>
+      </bpmndi:BPMNEdge>
+
+      <!-- Compensación -> Retirar -->
+      <bpmndi:BPMNEdge id="F_Comp_toRetirar_di" bpmnElement="F_Comp_toRetirar">
+        <di:waypoint x="789" y="259"/><di:waypoint x="1040" y="328"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+  </script>
+
+  <script>
+    (async function () {
+      const modeler = new BpmnJS({ container: '#canvas' });
+      const xml = document.getElementById('bpmn-xml').textContent.trim();
+
+      try {
+        await modeler.importXML(xml);
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      } catch (err) {
+        console.error('Error al importar BPMN:', err);
+        alert('No se pudo cargar el diagrama. Revisa la consola.');
+      }
+
+      document.getElementById('btnFit').addEventListener('click', () => {
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      });
+      document.getElementById('btnDownloadBPMN').addEventListener('click', async () => {
+        try {
+          const { xml } = await modeler.saveXML({ format: true });
+          download('sp4_comunicacion_difusion.bpmn', xml, 'text/xml');
+        } catch (e) { console.error(e); }
+      });
+      document.getElementById('btnDownloadSVG').addEventListener('click', async () => {
+        try {
+          const { svg } = await modeler.saveSVG();
+          download('sp4_comunicacion_difusion.svg', svg, 'image/svg+xml');
+        } catch (e) { console.error(e); }
+      });
+
+      function download(filename, data, mime) {
+        const blob = new Blob([data], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    })();
+  </script>
+</body>
+</html>

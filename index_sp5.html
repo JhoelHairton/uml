@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>BPMN – SP5 · Mejora Continua y Retroalimentación (Layout ordenado)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.development.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background:#fafafa; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    .toolbar { display:flex; gap:8px; align-items:center; padding:10px; border-bottom:1px solid #e6e6e6; background:#fff; position:sticky; top:0; z-index:10; }
+    .toolbar a, .toolbar button { padding:8px 12px; border:1px solid #d8d8d8; background:#fff; border-radius:8px; cursor:pointer; text-decoration:none; color:#111; }
+    .toolbar a:hover, .toolbar button:hover { background:#f3f3f3; }
+    .hint { margin-left:auto; color:#666; font-size:12px; }
+    #canvas { height: calc(100vh - 56px); }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="./index_overview.html">← Vista General</a>
+    <strong>SP5 · Mejora continua y retroalimentación (ordenado)</strong>
+    <button id="btnFit">Ajustar</button>
+    <button id="btnDownloadBPMN">.bpmn</button>
+    <button id="btnDownloadSVG">.svg</button>
+    <span class="hint">Happy path horizontal; timer periódico y escalación abajo</span>
+  </div>
+  <div id="canvas"></div>
+
+  <script type="text/plain" id="bpmn-xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_SP5_Orderly" targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="P_SP5" isExecutable="false" name="SP5 · Mejora continua y retroalimentación">
+    <bpmn:startEvent id="SP5_Start" name="Inicio SP5">
+      <bpmn:outgoing>F0</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="SP5_T_AnalizarCausas" name="Analizar causas de desviaciones">
+      <bpmn:incoming>F0</bpmn:incoming>
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP5_T_PlanCAPA" name="Elaborar plan de acción (CAPA)">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP5_T_Asignar" name="Asignar responsables y fechas">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Timer intermedio de revisión periódica (ciclo) -->
+    <bpmn:intermediateCatchEvent id="SP5_Evt_Timer" name="Revisión periódica">
+      <bpmn:timerEventDefinition />
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:outgoing>F_Timer_toImpacto</bpmn:outgoing>
+    </bpmn:intermediateCatchEvent>
+
+    <bpmn:task id="SP5_T_EvaluarImpacto" name="Evaluar impacto en siguiente ciclo">
+      <bpmn:incoming>F_Timer_toImpacto</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="SP5_G_XOR" name="¿Incumplimientos reiterados?">
+      <bpmn:incoming>F4</bpmn:incoming>
+      <bpmn:outgoing>F_SI</bpmn:outgoing>
+      <bpmn:outgoing>F_NO</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Escalación cuando hay reiteración -->
+    <bpmn:intermediateThrowEvent id="SP5_Evt_Escalar" name="Escalar a Vicerrectorado">
+      <bpmn:incoming>F_SI</bpmn:incoming>
+      <bpmn:outgoing>F_Esc_toAjustar</bpmn:outgoing>
+      <bpmn:escalationEventDefinition />
+    </bpmn:intermediateThrowEvent>
+
+    <bpmn:task id="SP5_T_AjustarPlan" name="Ajustar plan y reasignar">
+      <bpmn:incoming>F_Esc_toAjustar</bpmn:incoming>
+      <bpmn:outgoing>F_Ajuste_toAsignar</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP5_T_Validado" name="Plan de mejora validado (cierre PDCA/DMAIC)">
+      <bpmn:incoming>F_NO</bpmn:incoming>
+      <bpmn:outgoing>F5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="SP5_End" name="Fin SP5">
+      <bpmn:incoming>F5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Artefactos -->
+    <bpmn:dataObject id="SP5_DO_Plan" name="Plan de acción"/>
+    <bpmn:dataObject id="SP5_DO_KPIs" name="KPIs / Criterios"/>
+    <bpmn:dataStoreReference id="SP5_DS_Planes" name="Registro de planes de mejora"/>
+
+    <bpmn:dataOutputAssociation id="SP5_DA_CAPA_a_DS">
+      <bpmn:sourceRef>SP5_T_PlanCAPA</bpmn:sourceRef>
+      <bpmn:targetRef>SP5_DS_Planes</bpmn:targetRef>
+    </bpmn:dataOutputAssociation>
+
+    <bpmn:dataInputAssociation id="SP5_DA_KPI_a_Evaluar">
+      <bpmn:sourceRef>SP5_DO_KPIs</bpmn:sourceRef>
+      <bpmn:targetRef>SP5_T_EvaluarImpacto</bpmn:targetRef>
+    </bpmn:dataInputAssociation>
+
+    <bpmn:dataInputAssociation id="SP5_DA_Plan_a_Asignar">
+      <bpmn:sourceRef>SP5_DO_Plan</bpmn:sourceRef>
+      <bpmn:targetRef>SP5_T_Asignar</bpmn:targetRef>
+    </bpmn:dataInputAssociation>
+
+    <!-- Flujos de secuencia -->
+    <bpmn:sequenceFlow id="F0" sourceRef="SP5_Start" targetRef="SP5_T_AnalizarCausas"/>
+    <bpmn:sequenceFlow id="F1" sourceRef="SP5_T_AnalizarCausas" targetRef="SP5_T_PlanCAPA"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="SP5_T_PlanCAPA" targetRef="SP5_T_Asignar"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="SP5_T_Asignar" targetRef="SP5_Evt_Timer"/>
+    <bpmn:sequenceFlow id="F_Timer_toImpacto" sourceRef="SP5_Evt_Timer" targetRef="SP5_T_EvaluarImpacto"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="SP5_T_EvaluarImpacto" targetRef="SP5_G_XOR"/>
+    <bpmn:sequenceFlow id="F_SI" name="Sí" sourceRef="SP5_G_XOR" targetRef="SP5_Evt_Escalar"/>
+    <bpmn:sequenceFlow id="F_NO" name="No" sourceRef="SP5_G_XOR" targetRef="SP5_T_Validado"/>
+    <bpmn:sequenceFlow id="F_Esc_toAjustar" sourceRef="SP5_Evt_Escalar" targetRef="SP5_T_AjustarPlan"/>
+    <bpmn:sequenceFlow id="F_Ajuste_toAsignar" name="Reasignar" sourceRef="SP5_T_AjustarPlan" targetRef="SP5_T_Asignar"/>
+    <bpmn:sequenceFlow id="F5" sourceRef="SP5_T_Validado" targetRef="SP5_End"/>
+
+    <!-- Nota -->
+    <bpmn:textAnnotation id="SP5_Nota">
+      <bpmn:text>Mejoras: metas cuantificables por KPI, seguimiento periódico, escalación formal ante reiteración.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="SP5_Assoc_Nota" sourceRef="SP5_T_EvaluarImpacto" targetRef="SP5_Nota"/>
+
+  </bpmn:process>
+
+  <!-- DIAGRAM INTERCHANGE – Layout ordenado (happy path centrado; excepciones abajo) -->
+  <bpmndi:BPMNDiagram id="DI_SP5">
+    <bpmndi:BPMNPlane id="PL_SP5" bpmnElement="P_SP5">
+      <!-- Fila principal (y ~ 180) -->
+      <bpmndi:BPMNShape id="SP5_Start_di" bpmnElement="SP5_Start"><dc:Bounds x="120" y="190" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_T_AnalizarCausas_di" bpmnElement="SP5_T_AnalizarCausas"><dc:Bounds x="180" y="180" width="280" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_T_PlanCAPA_di" bpmnElement="SP5_T_PlanCAPA"><dc:Bounds x="480" y="180" width="280" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_T_Asignar_di" bpmnElement="SP5_T_Asignar"><dc:Bounds x="780" y="180" width="260" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_Evt_Timer_di" bpmnElement="SP5_Evt_Timer"><dc:Bounds x="1060" y="196" width="28" height="28"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_T_EvaluarImpacto_di" bpmnElement="SP5_T_EvaluarImpacto"><dc:Bounds x="1110" y="180" width="280" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_G_XOR_di" bpmnElement="SP5_G_XOR" isMarkerVisible="true"><dc:Bounds x="1408" y="192" width="40" height="40"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_T_Validado_di" bpmnElement="SP5_T_Validado"><dc:Bounds x="1468" y="180" width="320" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_End_di" bpmnElement="SP5_End"><dc:Bounds x="1808" y="190" width="36" height="36"/></bpmndi:BPMNShape>
+
+      <!-- Excepción (segunda fila) -->
+      <bpmndi:BPMNShape id="SP5_Evt_Escalar_di" bpmnElement="SP5_Evt_Escalar"><dc:Bounds x="1468" y="320" width="28" height="28"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_T_AjustarPlan_di" bpmnElement="SP5_T_AjustarPlan"><dc:Bounds x="1510" y="306" width="300" height="56"/></bpmndi:BPMNShape>
+
+      <!-- Artefactos -->
+      <bpmndi:BPMNShape id="SP5_DO_Plan_di" bpmnElement="SP5_DO_Plan"><dc:Bounds x="520" y="250" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_DO_KPIs_di" bpmnElement="SP5_DO_KPIs"><dc:Bounds x="1180" y="250" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_DS_Planes_di" bpmnElement="SP5_DS_Planes"><dc:Bounds x="1808" y="260" width="70" height="52"/></bpmndi:BPMNShape>
+
+      <!-- Nota -->
+      <bpmndi:BPMNShape id="SP5_Nota_di" bpmnElement="SP5_Nota"><dc:Bounds x="1120" y="250" width="260" height="48"/></bpmndi:BPMNShape>
+
+      <!-- Flujos ortogonales -->
+      <bpmndi:BPMNEdge id="F0_di" bpmnElement="F0"><di:waypoint x="156" y="208"/><di:waypoint x="180" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1"><di:waypoint x="460" y="208"/><di:waypoint x="480" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2"><di:waypoint x="760" y="208"/><di:waypoint x="780" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3"><di:waypoint x="1040" y="208"/><di:waypoint x="1060" y="210"/><di:waypoint x="1074" y="210"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_Timer_toImpacto_di" bpmnElement="F_Timer_toImpacto"><di:waypoint x="1088" y="210"/><di:waypoint x="1110" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4"><di:waypoint x="1390" y="208"/><di:waypoint x="1408" y="212"/></bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F_NO_di" bpmnElement="F_NO">
+        <di:waypoint x="1428" y="212"/><di:waypoint x="1468" y="208"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F_SI_di" bpmnElement="F_SI">
+        <di:waypoint x="1428" y="212"/><di:waypoint x="1428" y="334"/><di:waypoint x="1468" y="334"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F5_di" bpmnElement="F5"><di:waypoint x="1788" y="208"/><di:waypoint x="1808" y="208"/></bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F_Esc_toAjustar_di" bpmnElement="F_Esc_toAjustar"><di:waypoint x="1496" y="334"/><di:waypoint x="1510" y="334"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_Ajuste_toAsignar_di" bpmnElement="F_Ajuste_toAsignar">
+        <di:waypoint x="1810" y="334"/><di:waypoint x="1810" y="160"/><di:waypoint x="910" y="160"/><di:waypoint x="910" y="208"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+  </script>
+
+  <script>
+    (async function () {
+      const modeler = new BpmnJS({ container: '#canvas' });
+      const xml = document.getElementById('bpmn-xml').textContent.trim();
+
+      try {
+        await modeler.importXML(xml);
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      } catch (err) {
+        console.error('Error al importar BPMN:', err);
+        alert('No se pudo cargar el diagrama. Revisa la consola.');
+      }
+
+      document.getElementById('btnFit').addEventListener('click', () => {
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      });
+      document.getElementById('btnDownloadBPMN').addEventListener('click', async () => {
+        try {
+          const { xml } = await modeler.saveXML({ format: true });
+          download('sp5_mejora_continua.bpmn', xml, 'text/xml');
+        } catch (e) { console.error(e); }
+      });
+      document.getElementById('btnDownloadSVG').addEventListener('click', async () => {
+        try {
+          const { svg } = await modeler.saveSVG();
+          download('sp5_mejora_continua.svg', svg, 'image/svg+xml');
+        } catch (e) { console.error(e); }
+      });
+
+      function download(filename, data, mime) {
+        const blob = new Blob([data], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>BPMN – SP3 · Elaboración y Revisión (Layout ordenado)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.development.js"></script>
+  <style>
+    html, body { height: 100%; margin: 0; background:#fafafa; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    .toolbar { display:flex; gap:8px; align-items:center; padding:10px; border-bottom:1px solid #e6e6e6; background:#fff; position:sticky; top:0; z-index:10; }
+    .toolbar a, .toolbar button { padding:8px 12px; border:1px solid #d8d8d8; background:#fff; border-radius:8px; cursor:pointer; text-decoration:none; color:#111; }
+    .toolbar a:hover, .toolbar button:hover { background:#f3f3f3; }
+    .hint { margin-left:auto; color:#666; font-size:12px; }
+    #canvas { height: calc(100vh - 56px); }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <a href="./index_overview.html">← Vista General</a>
+    <strong>SP3 · Elaboración y revisión (ordenado)</strong>
+    <button id="btnFit">Ajustar</button>
+    <button id="btnDownloadBPMN">.bpmn</button>
+    <button id="btnDownloadSVG">.svg</button>
+    <span class="hint">Happy path horizontal; comentarios/plazo abajo; compensación listada</span>
+  </div>
+  <div id="canvas"></div>
+
+  <script type="text/plain" id="bpmn-xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_SP3_Orderly" targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="P_SP3" isExecutable="false" name="SP3 · Elaboración y revisión de reportes">
+    <bpmn:startEvent id="SP3_Start" name="Inicio SP3">
+      <bpmn:outgoing>F0</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="SP3_T_Elaborar" name="Elaborar reporte (con metadatos)">
+      <bpmn:incoming>F0</bpmn:incoming>
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP3_T_Revisar" name="Revisar formato, coherencia y evidencias (control documental)">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP3_T_Validar" name="Validar con direcciones y comités">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Boundary Message + Timer en Validación (ordenado abajo) -->
+    <bpmn:boundaryEvent id="SP3_BE_Message" name="Recibir comentarios" attachedToRef="SP3_T_Validar" cancelActivity="false">
+      <bpmn:messageEventDefinition />
+      <bpmn:outgoing>F_Msg_toAjustar</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:boundaryEvent id="SP3_BE_Timer" name="Plazo de revisión vencido" attachedToRef="SP3_T_Validar" cancelActivity="false">
+      <bpmn:timerEventDefinition />
+      <bpmn:outgoing>F_Timer_toAjustar</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:exclusiveGateway id="SP3_G_XOR" name="¿Observaciones?">
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:outgoing>F_SI</bpmn:outgoing>
+      <bpmn:outgoing>F_NO</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="SP3_T_Ajustar" name="Incorporar feedback y ajustar">
+      <bpmn:incoming>F_SI</bpmn:incoming>
+      <bpmn:incoming>F_Msg_toAjustar</bpmn:incoming>
+      <bpmn:incoming>F_Timer_toAjustar</bpmn:incoming>
+      <bpmn:outgoing>F_Loop_Revisar</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="SP3_T_InformeValidado" name="Informe validado para difusión">
+      <bpmn:incoming>F_NO</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:task>
+
+    <!-- Compensación (revertir versión) ligada al informe validado -->
+    <bpmn:boundaryEvent id="SP3_BE_Comp" name="Revertir versión (Compensación)" attachedToRef="SP3_T_InformeValidado" cancelActivity="false">
+      <bpmn:compensateEventDefinition />
+      <bpmn:outgoing>F_Comp_toRevisar</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:task id="SP3_T_Revertir" name="Revertir versión de informe" isForCompensation="true"/>
+    <bpmn:association id="SP3_Assoc_Comp" sourceRef="SP3_BE_Comp" targetRef="SP3_T_Revertir" associationDirection="One"/>
+
+    <bpmn:endEvent id="SP3_End" name="Fin SP3">
+      <bpmn:incoming>F4</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Data store: control documental (versionado) -->
+    <bpmn:dataStoreReference id="SP3_DS_ControlDoc" name="Control documental (versionado)"/>
+
+    <!-- Nota -->
+    <bpmn:textAnnotation id="SP3_Nota">
+      <bpmn:text>Puntos críticos: centralizar versiones, trazabilidad (autor/fecha/fuente), ciclos de revisión claros.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="SP3_Assoc_Nota" sourceRef="SP3_T_Revisar" targetRef="SP3_Nota"/>
+
+    <!-- Flujos -->
+    <bpmn:sequenceFlow id="F0" sourceRef="SP3_Start" targetRef="SP3_T_Elaborar"/>
+    <bpmn:sequenceFlow id="F1" sourceRef="SP3_T_Elaborar" targetRef="SP3_T_Revisar"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="SP3_T_Revisar" targetRef="SP3_T_Validar"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="SP3_T_Validar" targetRef="SP3_G_XOR"/>
+    <bpmn:sequenceFlow id="F_SI" name="Sí" sourceRef="SP3_G_XOR" targetRef="SP3_T_Ajustar"/>
+    <bpmn:sequenceFlow id="F_NO" name="No" sourceRef="SP3_G_XOR" targetRef="SP3_T_InformeValidado"/>
+    <bpmn:sequenceFlow id="F_Loop_Revisar" name="Iterar" sourceRef="SP3_T_Ajustar" targetRef="SP3_T_Revisar"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="SP3_T_InformeValidado" targetRef="SP3_End"/>
+    <bpmn:sequenceFlow id="F_Msg_toAjustar" sourceRef="SP3_BE_Message" targetRef="SP3_T_Ajustar"/>
+    <bpmn:sequenceFlow id="F_Timer_toAjustar" sourceRef="SP3_BE_Timer" targetRef="SP3_T_Ajustar"/>
+    <bpmn:sequenceFlow id="F_Comp_toRevisar" sourceRef="SP3_BE_Comp" targetRef="SP3_T_Revisar"/>
+
+  </bpmn:process>
+
+  <!-- DIAGRAM INTERCHANGE – Layout ordenado -->
+  <bpmndi:BPMNDiagram id="DI_SP3">
+    <bpmndi:BPMNPlane id="PL_SP3" bpmnElement="P_SP3">
+
+      <!-- Fila principal -->
+      <bpmndi:BPMNShape id="SP3_Start_di" bpmnElement="SP3_Start"><dc:Bounds x="120" y="190" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_T_Elaborar_di" bpmnElement="SP3_T_Elaborar"><dc:Bounds x="180" y="180" width="260" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_T_Revisar_di" bpmnElement="SP3_T_Revisar"><dc:Bounds x="470" y="180" width="280" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_T_Validar_di" bpmnElement="SP3_T_Validar"><dc:Bounds x="780" y="180" width="260" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_G_XOR_di" bpmnElement="SP3_G_XOR" isMarkerVisible="true"><dc:Bounds x="1060" y="192" width="40" height="40"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_T_InformeValidado_di" bpmnElement="SP3_T_InformeValidado"><dc:Bounds x="1120" y="180" width="280" height="56"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_End_di" bpmnElement="SP3_End"><dc:Bounds x="1420" y="190" width="36" height="36"/></bpmndi:BPMNShape>
+
+      <!-- Eventos límite debajo de Validar -->
+      <bpmndi:BPMNShape id="SP3_BE_Message_di" bpmnElement="SP3_BE_Message"><dc:Bounds x="910" y="240" width="18" height="18"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_BE_Timer_di" bpmnElement="SP3_BE_Timer"><dc:Bounds x="940" y="240" width="18" height="18"/></bpmndi:BPMNShape>
+
+      <!-- Rama de observaciones (segunda fila) -->
+      <bpmndi:BPMNShape id="SP3_T_Ajustar_di" bpmnElement="SP3_T_Ajustar"><dc:Bounds x="1120" y="340" width="280" height="56"/></bpmndi:BPMNShape>
+
+      <!-- Compensación ligada al informe -->
+      <bpmndi:BPMNShape id="SP3_BE_Comp_di" bpmnElement="SP3_BE_Comp"><dc:Bounds x="1380" y="220" width="18" height="18"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_T_Revertir_di" bpmnElement="SP3_T_Revertir"><dc:Bounds x="1280" y="260" width="220" height="48"/></bpmndi:BPMNShape>
+
+      <!-- Data store -->
+      <bpmndi:BPMNShape id="SP3_DS_ControlDoc_di" bpmnElement="SP3_DS_ControlDoc"><dc:Bounds x="1420" y="260" width="70" height="52"/></bpmndi:BPMNShape>
+
+      <!-- Nota -->
+      <bpmndi:BPMNShape id="SP3_Nota_di" bpmnElement="SP3_Nota"><dc:Bounds x="520" y="250" width="200" height="50"/></bpmndi:BPMNShape>
+
+      <!-- Flujos (ortogonales) -->
+      <bpmndi:BPMNEdge id="F0_di" bpmnElement="F0"><di:waypoint x="156" y="208"/><di:waypoint x="180" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1"><di:waypoint x="440" y="208"/><di:waypoint x="470" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2"><di:waypoint x="750" y="208"/><di:waypoint x="780" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3"><di:waypoint x="1040" y="208"/><di:waypoint x="1060" y="212"/></bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F_NO_di" bpmnElement="F_NO">
+        <di:waypoint x="1080" y="212"/><di:waypoint x="1120" y="208"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F_SI_di" bpmnElement="F_SI">
+        <di:waypoint x="1080" y="212"/><di:waypoint x="1080" y="368"/><di:waypoint x="1120" y="368"/>
+      </bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4"><di:waypoint x="1400" y="208"/><di:waypoint x="1420" y="208"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_Loop_Revisar_di" bpmnElement="F_Loop_Revisar"><di:waypoint x="1400" y="368"/><di:waypoint x="610" y="368"/><di:waypoint x="610" y="208"/><di:waypoint x="470" y="208"/></bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F_Msg_toAjustar_di" bpmnElement="F_Msg_toAjustar"><di:waypoint x="919" y="249"/><di:waypoint x="1120" y="368"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_Timer_toAjustar_di" bpmnElement="F_Timer_toAjustar"><di:waypoint x="949" y="249"/><di:waypoint x="1120" y="368"/></bpmndi:BPMNEdge>
+
+      <bpmndi:BPMNEdge id="F_Comp_toRevisar_di" bpmnElement="F_Comp_toRevisar"><di:waypoint x="1389" y="229"/><di:waypoint x="610" y="229"/><di:waypoint x="610" y="208"/></bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+  </script>
+
+  <script>
+    (async function () {
+      const modeler = new BpmnJS({ container: '#canvas' });
+      const xml = document.getElementById('bpmn-xml').textContent.trim();
+
+      try {
+        await modeler.importXML(xml);
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      } catch (err) {
+        console.error('Error al importar BPMN:', err);
+        alert('No se pudo cargar el diagrama. Revisa la consola.');
+      }
+
+      document.getElementById('btnFit').addEventListener('click', () => {
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      });
+      document.getElementById('btnDownloadBPMN').addEventListener('click', async () => {
+        try {
+          const { xml } = await modeler.saveXML({ format: true });
+          download('sp3_elaboracion_revision.bpmn', xml, 'text/xml');
+        } catch (e) { console.error(e); }
+      });
+      document.getElementById('btnDownloadSVG').addEventListener('click', async () => {
+        try {
+          const { svg } = await modeler.saveSVG();
+          download('sp3_elaboracion_revision.svg', svg, 'image/svg+xml');
+        } catch (e) { console.error(e); }
+      });
+
+      function download(filename, data, mime) {
+        const blob = new Blob([data], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    })();
+  </script>
+</body>
+</html>

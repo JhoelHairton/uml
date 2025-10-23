@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>BPMN – Vista General (Macroproceso + Subprocesos)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://unpkg.com/bpmn-js@11.5.0/dist/bpmn-modeler.development.js"></script>
+  <style>
+    :root { --border:#e6e6e6; --bg:#fafafa; --panel:#fff; }
+    html, body { height: 100%; margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); }
+    .layout { display:grid; grid-template-columns: 300px 1fr; grid-template-rows: 56px 1fr; height:100%; }
+    .toolbar { grid-column: 1/3; display:flex; gap:8px; align-items:center; padding:10px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:10; }
+    .toolbar button { padding:8px 12px; border:1px solid #d8d8d8; background:#fff; border-radius:8px; cursor:pointer; }
+    .toolbar button:hover { background:#f3f3f3; }
+    .hint { margin-left:auto; color:#666; font-size:12px; }
+    .sidebar { border-right:1px solid var(--border); background:var(--panel); padding:12px; overflow:auto; }
+    .sidebar h2 { font-size:14px; margin:6px 0 10px; color:#444; text-transform:uppercase; letter-spacing:.04em; }
+    .nav { display:flex; flex-direction:column; gap:8px; }
+    .nav a { display:block; padding:10px 12px; border:1px solid #e3e3e3; border-radius:10px; background:#fff; text-decoration:none; color:#111; font-size:14px; }
+    .nav a:hover { background:#f7f7f7; }
+    #canvas { height: calc(100vh - 56px); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="toolbar">
+      <strong>Vista general (Happy Path)</strong>
+      <button id="btnFit">Ajustar a pantalla</button>
+      <button id="btnDownloadBPMN">Descargar .bpmn</button>
+      <button id="btnDownloadSVG">Descargar .svg</button>
+      <span class="hint">Usa el panel izquierdo para abrir cada SP detallado</span>
+    </div>
+
+    <aside class="sidebar">
+      <h2>Subprocesos detallados</h2>
+      <div class="nav">
+        <a href="./index_sp1.html">SP1 · Recolección y validación</a>
+        <a href="./index_sp2.html">SP2 · Consolidación y análisis</a>
+        <a href="./index_sp3.html">SP3 · Elaboración y revisión</a>
+        <a href="./index_sp4.html">SP4 · Comunicación y difusión</a>
+        <a href="./index_sp5.html">SP5 · Mejora continua</a>
+      </div>
+    </aside>
+
+    <main>
+      <div id="canvas"></div>
+    </main>
+  </div>
+
+  <!-- XML: Pool + 5 lanes + SPs colapsados + happy path -->
+  <script type="text/plain" id="bpmn-xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Defs_Macro" targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="P_Macro" isExecutable="false" name="Seguimiento y Evaluación de Indicadores de Calidad y Acreditación">
+    <bpmn:laneSet id="LS_Main">
+      <bpmn:lane id="L1" name="Coordinadores de Calidad de Escuela"/>
+      <bpmn:lane id="L2" name="Dirección de Planificación y Gestión de la Calidad"/>
+      <bpmn:lane id="L3" name="Analista / Especialista en Planificación"/>
+      <bpmn:lane id="L4" name="Oficina de Comunicación Institucional"/>
+      <bpmn:lane id="L5" name="Comité Interno de Acreditación / Escuelas Profesionales"/>
+    </bpmn:laneSet>
+
+    <bpmn:startEvent id="E_Start" name="Solicitud de actualización / Inicio de ciclo">
+      <bpmn:outgoing>F0</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:subProcess id="SP1" name="SP1 · Recolección y validación"/>
+    <bpmn:subProcess id="SP2" name="SP2 · Consolidación y análisis"/>
+    <bpmn:subProcess id="SP3" name="SP3 · Elaboración y revisión"/>
+    <bpmn:subProcess id="SP4" name="SP4 · Comunicación y difusión"/>
+    <bpmn:subProcess id="SP5" name="SP5 · Mejora continua y retroalimentación"/>
+
+    <bpmn:endEvent id="E_End" name="Cierre del ciclo PDCA/DMAIC">
+      <bpmn:incoming>F5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F0" sourceRef="E_Start" targetRef="SP1"/>
+    <bpmn:sequenceFlow id="F1" sourceRef="SP1" targetRef="SP2"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="SP2" targetRef="SP3"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="SP3" targetRef="SP4"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="SP4" targetRef="SP5"/>
+    <bpmn:sequenceFlow id="F5" sourceRef="SP5" targetRef="E_End"/>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="DI_Macro">
+    <bpmndi:BPMNPlane id="Plane_Macro" bpmnElement="P_Macro">
+      <!-- Lanes -->
+      <bpmndi:BPMNShape id="L1_di" bpmnElement="L1" isHorizontal="true"><dc:Bounds x="120" y="80" width="1600" height="120"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L2_di" bpmnElement="L2" isHorizontal="true"><dc:Bounds x="120" y="200" width="1600" height="120"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L3_di" bpmnElement="L3" isHorizontal="true"><dc:Bounds x="120" y="320" width="1600" height="120"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L4_di" bpmnElement="L4" isHorizontal="true"><dc:Bounds x="120" y="440" width="1600" height="120"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L5_di" bpmnElement="L5" isHorizontal="true"><dc:Bounds x="120" y="560" width="1600" height="120"/></bpmndi:BPMNShape>
+
+      <!-- Nodos -->
+      <bpmndi:BPMNShape id="E_Start_di" bpmnElement="E_Start"><dc:Bounds x="150" y="130" width="36" height="36"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="SP1_di" bpmnElement="SP1" isExpanded="false"><dc:Bounds x="220" y="110" width="240" height="76"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP2_di" bpmnElement="SP2" isExpanded="false"><dc:Bounds x="500" y="350" width="240" height="76"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP3_di" bpmnElement="SP3" isExpanded="false"><dc:Bounds x="780" y="230" width="260" height="76"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP4_di" bpmnElement="SP4" isExpanded="false"><dc:Bounds x="1080" y="470" width="260" height="76"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="SP5_di" bpmnElement="SP5" isExpanded="false"><dc:Bounds x="1380" y="590" width="260" height="76"/></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="E_End_di" bpmnElement="E_End"><dc:Bounds x="1660" y="640" width="36" height="36"/></bpmndi:BPMNShape>
+
+      <!-- Flujos -->
+      <bpmndi:BPMNEdge id="F0_di" bpmnElement="F0"><di:waypoint x="186" y="148"/><di:waypoint x="220" y="148"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1"><di:waypoint x="460" y="148"/><di:waypoint x="500" y="388"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2"><di:waypoint x="740" y="388"/><di:waypoint x="780" y="268"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3"><di:waypoint x="1040" y="268"/><di:waypoint x="1080" y="508"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4"><di:waypoint x="1340" y="508"/><di:waypoint x="1380" y="628"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F5_di" bpmnElement="F5"><di:waypoint x="1640" y="628"/><di:waypoint x="1678" y="658"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+  </script>
+
+  <script>
+    (async function () {
+      const modeler = new BpmnJS({ container: '#canvas' });
+      const xml = document.getElementById('bpmn-xml').textContent.trim();
+
+      try {
+        await modeler.importXML(xml);
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      } catch (err) {
+        console.error('Error al importar BPMN:', err);
+        alert('No se pudo cargar el diagrama. Revisa la consola.');
+      }
+
+      document.getElementById('btnFit').addEventListener('click', () => {
+        modeler.get('canvas').zoom('fit-viewport', 'auto');
+      });
+
+      document.getElementById('btnDownloadBPMN').addEventListener('click', async () => {
+        try {
+          const { xml } = await modeler.saveXML({ format: true });
+          download('overview_macro.bpmn', xml, 'text/xml');
+        } catch (e) { console.error(e); }
+      });
+
+      document.getElementById('btnDownloadSVG').addEventListener('click', async () => {
+        try {
+          const { svg } = await modeler.saveSVG();
+          download('overview_macro.svg', svg, 'image/svg+xml');
+        } catch (e) { console.error(e); }
+      });
+
+      function download(filename, data, mime) {
+        const blob = new Blob([data], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    })();
+  </script>
+</body>
+</html>
